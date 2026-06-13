@@ -1,3 +1,7 @@
+[![Version](https://img.shields.io/jetbrains/plugin/v/32276?label=Marketplace)](https://plugins.jetbrains.com/plugin/32276)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/32276)](https://plugins.jetbrains.com/plugin/32276)
+[![Rating](https://img.shields.io/jetbrains/plugin/r/stars/32276)](https://plugins.jetbrains.com/plugin/32276)
+
 # Python Role Lens (PyCharm plugin)
 
 Adds IDE awareness for the **Role / delegation** pattern in Python — the same support a
