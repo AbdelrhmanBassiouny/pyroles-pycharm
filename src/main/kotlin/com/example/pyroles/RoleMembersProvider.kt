@@ -1,7 +1,7 @@
 package com.example.pyroles
 
 import com.intellij.psi.PsiElement
-import com.jetbrains.python.codeInsight.PyClassMembersProviderBase
+import com.jetbrains.python.psi.types.PyClassMembersProviderBase
 import com.jetbrains.python.codeInsight.PyCustomMember
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyExpression
@@ -13,16 +13,15 @@ import com.jetbrains.python.psi.types.TypeEvalContext
 /**
  * Teaches PyCharm about the **Role / delegation** pattern in Python.
  *
- * In that pattern a generic `Role[T]` wraps a "taker" instance and forwards attribute
- * access to it through `__getattr__`, so a subclass gains the taker's attributes by
- * *composition* rather than inheritance:
+ * In that pattern a generic `Role[T]` wraps a "taker" instance (stored in a domain-named
+ * field) and forwards attribute access to it through `__getattr__`, so a subclass gains the
+ * taker's attributes by *composition* rather than inheritance:
  *
  * ```python
  * @dataclass
  * class Role(Generic[RoleTakerT]):
- *     _taker: RoleTakerT
  *     def __getattr__(self, name: str) -> Any:
- *         return getattr(self._taker, name)
+ *         return getattr(self.role_taker, name)
  *
  * @dataclass
  * class Person:
@@ -31,15 +30,16 @@ import com.jetbrains.python.psi.types.TypeEvalContext
  *
  * @dataclass
  * class Teacher(Role[Person]):
- *     courses: list[str]
+ *     person: Person = role_taker_field()
+ *     courses: list[str] = field(default_factory=list)
  *
- * teacher = Teacher(_taker=Person("Ahmed", 20))
+ * teacher = Teacher(person=Person("Ahmed", 20))
  * teacher.name   # <-- completion, type (str) and Go-to-Declaration now work
  * ```
  *
  * Because the access goes through `__getattr__`, PyCharm's static engine normally sees
- * nothing on `teacher` except `courses`. This provider detects that a class is a
- * `Role[...]` subclass and injects the taker's members onto the role's *type*.
+ * nothing on `teacher` except its own fields. This provider reads the taker type from the
+ * `Role[...]` base's generic argument and injects the taker's members onto the role's *type*.
  *
  * ### Why one hook is enough
  * Each injected [PyCustomMember] resolves to the **real** declaration inside the taker
@@ -63,17 +63,13 @@ class RoleMembersProvider : PyClassMembersProviderBase() {
 
     private companion object {
         /**
-         * Fully-qualified name of *your* `Role` base class. Set it for a fast, precise
-         * match — e.g. for `from myapp.roles import Role` use `"myapp.roles.Role"`.
+         * Fully-qualified name of the krrood `Role` base class — a fast, precise match.
          *
          * This is only a fast path: when it does not match, [isRoleBase] falls back to a
-         * structural check (a `_taker` field plus a `__getattr__` method), so the plugin
-         * still works if you leave this untouched or have several Role-like bases.
+         * structural check (the base defines a `__getattr__` method), so the plugin also
+         * works for inline `Role[T]` bases such as the bundled `sample/roles_demo.py`.
          */
-        const val ROLE_QUALIFIED_NAME: String = "roles.Role"
-
-        /** Name of the delegation field on `Role`; never surfaced as a taker member. */
-        const val DELEGATION_FIELD: String = "_taker"
+        const val ROLE_QUALIFIED_NAME: String = "krrood.patterns.role.Role"
 
         /** Dunder used to detect a delegating base in the structural fallback. */
         const val GETATTR: String = "__getattr__"
@@ -152,21 +148,18 @@ class RoleMembersProvider : PyClassMembersProviderBase() {
 
     /**
      * Decides whether [cls] is the `Role` base. Matches by [ROLE_QUALIFIED_NAME] first, then
-     * falls back to a structural test: a role-like base declares a [DELEGATION_FIELD] field
-     * and a `__getattr__` method (possibly on one of its own ancestors).
+     * falls back to a structural test: a role-like base delegates through a `__getattr__`
+     * method (declared on the base itself or one of its ancestors). The krrood `Role` stores
+     * its taker in a domain-named field rather than a fixed one, so the field name is not used
+     * as a signal.
      */
     private fun isRoleBase(cls: PyClass, context: TypeEvalContext): Boolean {
         if (cls.qualifiedName == ROLE_QUALIFIED_NAME) return true
 
         val family = listOf(cls) + cls.getAncestorClasses(context)
-        val declaresTaker = family.any { candidate ->
-            candidate.classAttributes.any { it.name == DELEGATION_FIELD } ||
-                candidate.instanceAttributes.any { it.name == DELEGATION_FIELD }
-        }
-        val delegates = family.any { candidate ->
+        return family.any { candidate ->
             candidate.methods.any { it.name == GETATTR }
         }
-        return declaresTaker && delegates
     }
 
     /**
@@ -205,7 +198,7 @@ class RoleMembersProvider : PyClassMembersProviderBase() {
 
     /** Registers a single member if its name is publishable and not already taken. */
     private fun offer(out: MutableMap<String, PyCustomMember>, name: String?, target: PsiElement) {
-        if (name == null || name == DELEGATION_FIELD || isDunder(name)) return
+        if (name == null || isDunder(name)) return
         out.putIfAbsent(name, PyCustomMember(name, target))
     }
 
