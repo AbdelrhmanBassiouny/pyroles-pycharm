@@ -8,6 +8,9 @@ Adds IDE awareness for the **Role / delegation** pattern in Python — the same 
 companion VS Code extension provides — so completion, type inference, and Go‑to‑Declaration
 work on delegated attributes.
 
+[pycharm_roles_plugin.webm](https://github.com/user-attachments/assets/9426a90c-7170-4d2f-9955-dc509ecc7d70)
+
+
 ```python
 @dataclass
 class Role(Generic[RoleTakerT]):
