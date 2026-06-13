@@ -25,9 +25,33 @@ teacher.name   # ← autocompletes, infers `str`, and Ctrl/Cmd+Click jumps to Pe
 ```
 
 Because access is delegated through `__getattr__` (composition, not inheritance), PyCharm
-normally sees nothing on `teacher` except its own fields. This plugin reads the taker type
-from the `Role[…]` generic argument and injects the taker's members onto any `Role[…]`
-subclass.
+normally sees nothing on `teacher` except its own fields. This plugin reads the taker type —
+from the `Role[…]` generic argument or a `role_taker_field()` — and injects the taker's
+members onto any `Role[…]` subclass.
+
+---
+
+## Getting started
+
+### Install
+
+In your JetBrains IDE: **Settings/Preferences → Plugins → Marketplace**, search for **Python
+Role Lens**, click **Install**, and restart. (Works in PyCharm, and in IntelliJ IDEA with the
+Python plugin.) You can also install a built `.zip` via **⚙ → Install Plugin from Disk…**.
+
+### Try it
+
+There's nothing to configure — the plugin activates automatically for any class that subclasses
+a `Role[Taker]` base delegating through `__getattr__`, like the `Teacher(Role[Person])` example
+above. On a role instance:
+
+- type a `.` → the taker's attributes and methods appear in **completion**;
+- hover a delegated attribute → its real type is **inferred**;
+- **Ctrl/Cmd-Click** a delegated attribute → jump to its declaration in the taker (**Find
+  Usages** and **Rename** work there too).
+
+It also handles **transitive roles** (a subclass of a role), **inherited taker members** (the
+taker's own base classes), and **nested roles** (a taker that is itself a role).
 
 ---
 
@@ -132,6 +156,43 @@ In the sandbox IDE from `runIde`, open `sample/roles_demo.py` and:
 - type a `.` after `teacher`, `senior`, or `dept` and watch delegated members appear;
 - hover a delegated attribute to see its inferred type;
 - Ctrl/Cmd+Click a delegated attribute to jump to its declaration.
+
+---
+
+## Publish to the JetBrains Marketplace
+
+The plugin id, vendor, and compatibility range are already set in `plugin.xml` /
+`gradle.properties`. The **id is permanent** once published — do not change it afterwards.
+
+One-time setup:
+
+1. Sign in at [plugins.jetbrains.com](https://plugins.jetbrains.com) and create a vendor
+   profile if prompted.
+2. Generate a permanent upload token at
+   [plugins.jetbrains.com/author/me/tokens](https://plugins.jetbrains.com/author/me/tokens) →
+   export it as `PYCHARM_PUBLISH_TOKEN`.
+3. *(Recommended)* Generate a signing certificate:
+   ```bash
+   openssl genpkey -aes-256-cbc -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:4096
+   openssl req -key private.pem -new -x509 -days 3650 -out chain.crt
+   ```
+
+Verify, build, and publish:
+
+```bash
+./gradlew verifyPlugin          # JetBrains Plugin Verifier — fix anything it reports
+./gradlew buildPlugin           # -> build/distributions/pyroles-pycharm-<version>.zip
+
+# Publish from Gradle (signing env vars optional; omit the signing block to upload unsigned):
+PYCHARM_PUBLISH_TOKEN=…                 \
+CERTIFICATE_CHAIN="$(cat chain.crt)" PRIVATE_KEY="$(cat private.pem)" PRIVATE_KEY_PASSWORD=… \
+  ./gradlew publishPlugin
+```
+
+Alternatively, upload the zip manually via **Upload plugin** on the Marketplace site. Either
+way, the **first version of a new plugin is reviewed by JetBrains** (a few business days) before
+it appears publicly. For later releases, bump `pluginVersion`, update `<change-notes>`, and run
+`./gradlew publishPlugin` again — updates publish without manual review.
 
 ---
 
