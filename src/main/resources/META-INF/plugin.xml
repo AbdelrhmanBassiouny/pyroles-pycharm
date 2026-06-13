@@ -1,8 +1,8 @@
 <idea-plugin>
-    <!-- Unique id. Change to your own reverse-DNS identifier before publishing. -->
-    <id>com.example.pyroles</id>
+    <!-- Unique, permanent id (cannot be changed after the first Marketplace publish). -->
+    <id>io.github.abdelrhmanbassiouny.pyroles</id>
     <name>Python Role Lens</name>
-    <vendor email="you@example.com" url="https://example.com">Example</vendor>
+    <vendor email="abdelrhman_bassuny@hotmail.com" url="https://github.com/AbdelrhmanBassiouny">Abdelrhman Bassiouny</vendor>
 
     <description><![CDATA[
         Adds IDE awareness for the <b>Role / delegation</b> pattern in Python, where a class
@@ -14,6 +14,14 @@
         <b>type inference</b>, and <b>Go to Declaration</b> (Ctrl/Cmd+Click), without
         using inheritance.
     ]]></description>
+
+    <change-notes><![CDATA[
+        <b>0.1.0</b> — Initial release. Completion, type inference, and Go to Declaration for
+        the Role / delegation pattern: the taker's members (plus everything it inherits and any
+        nested roles) are injected onto a role declared with <code>Role[Taker]</code> or a
+        <code>role_taker_field()</code>. A <code>Role[T]</code> parameterised by a bounded
+        <code>TypeVar</code> resolves to its bound.
+    ]]></change-notes>
 
     <!--
       Marks this as a Python-aware plugin. The module com.intellij.modules.python is

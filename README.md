@@ -135,6 +135,43 @@ In the sandbox IDE from `runIde`, open `sample/roles_demo.py` and:
 
 ---
 
+## Publish to the JetBrains Marketplace
+
+The plugin id, vendor, and compatibility range are already set in `plugin.xml` /
+`gradle.properties`. The **id is permanent** once published — do not change it afterwards.
+
+One-time setup:
+
+1. Sign in at [plugins.jetbrains.com](https://plugins.jetbrains.com) and create a vendor
+   profile if prompted.
+2. Generate a permanent upload token at
+   [plugins.jetbrains.com/author/me/tokens](https://plugins.jetbrains.com/author/me/tokens) →
+   export it as `PUBLISH_TOKEN`.
+3. *(Recommended)* Generate a signing certificate:
+   ```bash
+   openssl genpkey -aes-256-cbc -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:4096
+   openssl req -key private.pem -new -x509 -days 3650 -out chain.crt
+   ```
+
+Verify, build, and publish:
+
+```bash
+./gradlew verifyPlugin          # JetBrains Plugin Verifier — fix anything it reports
+./gradlew buildPlugin           # -> build/distributions/pyroles-pycharm-<version>.zip
+
+# Publish from Gradle (signing env vars optional; omit the signing block to upload unsigned):
+PUBLISH_TOKEN=…                 \
+CERTIFICATE_CHAIN="$(cat chain.crt)" PRIVATE_KEY="$(cat private.pem)" PRIVATE_KEY_PASSWORD=… \
+  ./gradlew publishPlugin
+```
+
+Alternatively, upload the zip manually via **Upload plugin** on the Marketplace site. Either
+way, the **first version of a new plugin is reviewed by JetBrains** (a few business days) before
+it appears publicly. For later releases, bump `pluginVersion`, update `<change-notes>`, and run
+`./gradlew publishPlugin` again — updates publish without manual review.
+
+---
+
 ## How it works (internals)
 
 PyCharm has its own type/resolve engine; you extend it rather than re-implementing editor

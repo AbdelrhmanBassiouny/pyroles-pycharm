@@ -38,7 +38,30 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            untilBuild = providers.gradleProperty("pluginUntilBuild")
+            // No explicit upper bound: the Gradle plugin defaults it to the build platform's
+            // branch (e.g. `261.*`). A hard far-future cap such as `999.*` is rejected/flagged
+            // by the Marketplace, so widen the range by rebuilding against a newer platform.
+        }
+    }
+
+    // `./gradlew publishPlugin` uploads to the JetBrains Marketplace using a permanent token
+    // generated at https://plugins.jetbrains.com/author/me/tokens.
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+    }
+
+    // The Marketplace recommends signed plugins. Supply the certificate chain + private key
+    // (see README) through these env vars; remove this block to upload unsigned.
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+
+    // `./gradlew verifyPlugin` runs JetBrains' Plugin Verifier against the recommended IDEs.
+    pluginVerification {
+        ides {
+            recommended()
         }
     }
 }
